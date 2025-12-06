@@ -24,6 +24,15 @@ impl RendererCore {
         }
     }
 
+    /// Renders a density field as grayscale image
+    /// 
+    /// # Arguments
+    /// * `fb` - Frame buffer to render to
+    /// * `sim` - Fluid field containing density data
+    /// 
+    /// Density values are clamped to [0,1] and mapped to grayscale [0,255].
+    /// NaN values become 0, ±Inf become 0 or 1 respectively.
+    #[inline]
     pub fn draw_density(&self, fb: &mut impl FrameBuffer, sim: &impl FluidField) {
         // Clear buffer first (spec requirement B-5)
         fb.clear(0xFF000000);
@@ -54,11 +63,13 @@ impl RendererCore {
                 // Get density value at grid position
                 let mut density = sim.density_at(i, j);
 
-                // Handle NaN and Inf values (spec B-7)
-                if density.is_nan() {
-                    density = 0.0;
-                } else if density.is_infinite() {
-                    density = if density > 0.0 { 1.0 } else { 0.0 };
+                // Handle NaN and Inf values (spec B-7) - optimized
+                if !density.is_finite() {
+                    density = if density.is_nan() || density < 0.0 {
+                        0.0
+                    } else {
+                        1.0
+                    };
                 }
 
                 // Clamp density to [0, 1] range (spec B-1-2)

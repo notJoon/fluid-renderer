@@ -1,15 +1,36 @@
+/// Trait for pixel buffer abstraction
+/// 
+/// This trait provides a common interface for both headless and window-backed buffers.
+/// All pixels are in ARGB format (0xAARRGGBB).
 pub trait FrameBuffer {
+    /// Returns the width of the buffer in pixels
     fn width(&self) -> usize;
+    
+    /// Returns the height of the buffer in pixels
     fn height(&self) -> usize;
 
+    /// Clears the entire buffer with the given color
     fn clear(&mut self, color: u32);
+    
+    /// Sets a pixel at (x, y) to the given color
+    /// Does nothing if coordinates are out of bounds
     fn set_pixel(&mut self, x: usize, y: usize, color: u32);
+    
+    /// Gets the pixel color at (x, y)
+    /// Returns None if coordinates are out of bounds
     fn get_pixel(&self, x: usize, y: usize) -> Option<u32>;
 
+    /// Returns immutable reference to the underlying buffer
     fn buffer(&self) -> &[u32];
+    
+    /// Returns mutable reference to the underlying buffer
     fn buffer_mut(&mut self) -> &mut [u32];
 }
 
+/// Headless implementation of FrameBuffer for testing and CI environments
+/// 
+/// This buffer stores pixels in memory without any GUI dependencies,
+/// making it safe to use in automated tests and headless environments.
 pub struct HeadlessBuffer {
     width: usize,
     height: usize,

@@ -1,10 +1,11 @@
-use fluid_renderer::{FrameBuffer, HeadlessBuffer, RendererCore, RendererMinifb};
-use std::time::Instant;
+use fluid_renderer::{
+    constants, FpsCounter, FrameBuffer, HeadlessBuffer, RendererCore, RendererMinifb,
+};
 
 fn main() {
-    let width = 512;
-    let height = 512;
-    let scale = 1;
+    let width = constants::DEFAULT_WIDTH;
+    let height = constants::DEFAULT_HEIGHT;
+    let scale = constants::DEFAULT_SCALE;
 
     let mut buffer = HeadlessBuffer::new(width, height);
     let renderer_core = RendererCore::new(scale);
@@ -26,54 +27,45 @@ fn run_with_window(
     renderer: &RendererCore,
     window: &mut RendererMinifb,
 ) {
-    let start = Instant::now();
-    let mut frame_count = 0;
+    let mut fps_counter = FpsCounter::new();
+    const MAX_FRAMES: u64 = 300;
 
     while !window.should_close() {
-        buffer.clear(0xFF000000);
+        buffer.clear(constants::BACKGROUND_COLOR);
         renderer.draw_gradient(buffer);
 
         if !window.present(buffer) {
             break;
         }
 
-        frame_count += 1;
-
-        if frame_count % 60 == 0 {
-            let elapsed = start.elapsed().as_secs_f64();
-            let fps = frame_count as f64 / elapsed;
-            println!("FPS: {:.2} (Frame {})", fps, frame_count);
+        if let Some(fps) = fps_counter.update() {
+            println!("FPS: {:.2} (Frame {})", fps, fps_counter.frame_count());
         }
 
-        if frame_count >= 300 {
+        if fps_counter.frame_count() >= MAX_FRAMES {
             break;
         }
     }
 
-    let elapsed = start.elapsed().as_secs_f64();
-    let average_fps = frame_count as f64 / elapsed;
     println!("\nGUI test completed!");
-    println!("Total frames: {}", frame_count);
-    println!("Average FPS: {:.2}", average_fps);
+    println!("Total frames: {}", fps_counter.frame_count());
+    println!("Average FPS: {:.2}", fps_counter.average_fps());
 }
 
 fn run_headless(buffer: &mut impl FrameBuffer, renderer: &RendererCore) {
-    let start = Instant::now();
-    let iterations = 1000;
+    let mut fps_counter = FpsCounter::with_interval(100);
+    const ITERATIONS: u64 = 1000;
 
-    for i in 0..iterations {
-        buffer.clear(0xFF000000);
+    for _ in 0..ITERATIONS {
+        buffer.clear(constants::BACKGROUND_COLOR);
         renderer.draw_gradient(buffer);
 
-        if i % 100 == 0 {
-            println!("Headless frame {}", i);
+        if fps_counter.update().is_some() {
+            println!("Headless frame {}", fps_counter.frame_count());
         }
     }
 
-    let elapsed = start.elapsed().as_secs_f64();
-    let fps = iterations as f64 / elapsed;
-
     println!("\nHeadless test completed!");
-    println!("Total frames: {}", iterations);
-    println!("Average FPS: {:.2}", fps);
+    println!("Total frames: {}", fps_counter.frame_count());
+    println!("Average FPS: {:.2}", fps_counter.average_fps());
 }
