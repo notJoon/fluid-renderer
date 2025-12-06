@@ -9,7 +9,7 @@ fn main() {
     let mut buffer = HeadlessBuffer::new(width, height);
     let renderer_core = RendererCore::new(scale);
 
-    match RendererMinifb::new("Fluid Renderer - Headless Architecture", width, height) {
+    match RendererMinifb::new("Fluid Renderer", width, height) {
         Ok(mut window) => {
             println!("Window created successfully, running GUI mode");
             run_with_window(&mut buffer, &renderer_core, &mut window);

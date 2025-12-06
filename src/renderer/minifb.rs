@@ -20,6 +20,10 @@ impl RendererMinifb {
             .is_ok()
     }
 
+    pub fn is_open(&self) -> bool {
+        self.window.is_open() && !self.window.is_key_down(Key::Escape)
+    }
+
     pub fn should_close(&self) -> bool {
         !self.window.is_open() || self.window.is_key_down(Key::Escape)
     }

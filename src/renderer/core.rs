@@ -1,3 +1,4 @@
+use crate::fluid_field::FluidField;
 use crate::frame_buffer::FrameBuffer;
 
 pub struct RendererCore {
@@ -19,6 +20,68 @@ impl RendererCore {
                 let g = (y * 255 / fb.height().max(1)) as u8;
                 let b = 128;
                 fb.set_pixel(x, y, rgb(r, g, b));
+            }
+        }
+    }
+
+    pub fn draw_density(&self, fb: &mut impl FrameBuffer, sim: &impl FluidField) {
+        // Clear buffer first (spec requirement B-5)
+        fb.clear(0xFF000000);
+
+        let grid_width = sim.grid_width();
+        let grid_height = sim.grid_height();
+        let buffer_width = fb.width();
+        let buffer_height = fb.height();
+
+        // Get direct access to buffer for better performance
+        let buffer = fb.buffer_mut();
+
+        // Iterate through the fluid grid
+        for j in 0..grid_height {
+            let buffer_y = j * self.scale;
+            // Early boundary check for y
+            if buffer_y >= buffer_height {
+                break;
+            }
+
+            for i in 0..grid_width {
+                let buffer_x = i * self.scale;
+                // Early boundary check for x
+                if buffer_x >= buffer_width {
+                    break;
+                }
+
+                // Get density value at grid position
+                let mut density = sim.density_at(i, j);
+
+                // Handle NaN and Inf values (spec B-7)
+                if density.is_nan() {
+                    density = 0.0;
+                } else if density.is_infinite() {
+                    density = if density > 0.0 { 1.0 } else { 0.0 };
+                }
+
+                // Clamp density to [0, 1] range (spec B-1-2)
+                let d_clamped = density.clamp(0.0, 1.0);
+
+                // Convert to grayscale (spec B-2)
+                let gray = (d_clamped * 255.0).round() as u8;
+                let pixel =
+                    0xFF000000 | ((gray as u32) << 16) | ((gray as u32) << 8) | (gray as u32);
+
+                // Draw scale x scale block (spec B-3-2)
+                let max_dy = self.scale.min(buffer_height - buffer_y);
+                let max_dx = self.scale.min(buffer_width - buffer_x);
+
+                for dy in 0..max_dy {
+                    let py = buffer_y + dy;
+                    let row_start = py * buffer_width + buffer_x;
+
+                    // Fill the row with the pixel value
+                    for dx in 0..max_dx {
+                        buffer[row_start + dx] = pixel;
+                    }
+                }
             }
         }
     }
