@@ -2,6 +2,7 @@ pub mod fluid_field;
 pub mod frame_buffer;
 pub mod renderer;
 pub mod utils;
+pub mod velocity_field;
 
 #[cfg(test)]
 pub mod test_utils;
